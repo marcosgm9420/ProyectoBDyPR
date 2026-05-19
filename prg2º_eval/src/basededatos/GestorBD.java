@@ -12,22 +12,12 @@ import personaje.Mercenario;
 import personaje.Netrunner;
 import personaje.Doctor;
 
-/**
- * Clase GestorBD: gestiona todas las operaciones de acceso a la base de datos MySQL.
- * Actúa como capa de persistencia del juego RPG, permitiendo guardar, cargar,
- * actualizar y eliminar partidas y personajes......
- */
 public class GestorBD {
 
     private static final String URL      = "jdbc:mysql://localhost:3306/rpg_game";
     private static final String USUARIO  = "root";
     private static final String PASSWORD = "";
 
-    /*
-     * Abre y devuelve una conexión activa a la base de datos.
-     * Si la conexión falla, imprime el error y devuelve null.
-     * Se usa en todos los demás métodos como punto de entrada a la BD.
-     */
     public static Connection conectar() {
         Connection conexion = null;
         try {
@@ -39,40 +29,25 @@ public class GestorBD {
         return conexion;
     }
 
-    /*
-     * Crea un nuevo registro en la tabla 'partidas' con el nombre del jugador
-     * y el turno inicial a 1. Devuelve el ID autogenerado por la BD,
-     * necesario para asociar personajes a esa partida.
-     * Devuelve -1 si la inserción falla.
-     */
     public static int crearNuevaPartida(String nombreJugador) {
         String sql = "INSERT INTO partidas (nombre_jugador, turno_actual) VALUES (?, 1)";
         int idPartidaGenerado = -1;
 
-        // try-with-resources: cierra automáticamente la conexión y el PreparedStatement al terminar
         try (Connection conexion = conectar();
-             // RETURN_GENERATED_KEYS indica a JDBC que queremos recuperar el ID autogenerado
              PreparedStatement pstmt = conexion.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
-            pstmt.setString(1, nombreJugador); // Sustituye el primer '?' por el nombre del jugador
-            pstmt.executeUpdate();             // Ejecuta el INSERT
+            pstmt.setString(1, nombreJugador);
+            pstmt.executeUpdate();
 
-            // Obtenemos el ID que MySQL asignó automáticamente a la nueva fila
             ResultSet rs = pstmt.getGeneratedKeys();
             if (rs.next()) {
-                idPartidaGenerado = rs.getInt(1); // Columna 1 del ResultSet = ID generado
+                idPartidaGenerado = rs.getInt(1);
             }
         } catch (SQLException e) { e.printStackTrace(); }
 
         return idPartidaGenerado;
     }
 
-    /**
-     * Inserta un personaje nuevo en la tabla 'personajes_partida',
-     * vinculándolo a una partida concreta mediante idPartida.
-     * El booleano esAliado distingue si pertenece al equipo del jugador (true)
-     * o al equipo enemigo (false).
-     */
     public static void guardarPersonaje(int idPartida, String nombre, String clasePersonaje,
                                         int vidaActual, int vidaMax, int energia, boolean esAliado) {
         String sql = "INSERT INTO personajes_partida (id_partida, nombre, clase, vida_actual, vida_max, energia, es_aliado) "
@@ -80,7 +55,6 @@ public class GestorBD {
         try (Connection conexion = conectar();
              PreparedStatement pstmt = conexion.prepareStatement(sql)) {
 
-            // Asignamos cada '?' con el valor correspondiente, respetando el orden del SQL
             pstmt.setInt(1, idPartida);
             pstmt.setString(2, nombre);
             pstmt.setString(3, clasePersonaje);
@@ -88,26 +62,20 @@ public class GestorBD {
             pstmt.setInt(5, vidaMax);
             pstmt.setInt(6, energia);
             pstmt.setBoolean(7, esAliado);
-            pstmt.executeUpdate(); // Ejecuta el INSERT
+            pstmt.executeUpdate();
 
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    /**
-     * Consulta y muestra por consola todas las partidas almacenadas en la BD,
-     * indicando su ID, nombre del jugador y turno en el que se encuentra.
-     * Si no existe ninguna, informa al usuario.
-     */
     public static void listarPartidas() {
         String sql = "SELECT * FROM partidas";
         try (Connection conexion = conectar();
              PreparedStatement pstmt = conexion.prepareStatement(sql);
-             ResultSet rs = pstmt.executeQuery()) { // Ejecuta el SELECT y almacena los resultados
+             ResultSet rs = pstmt.executeQuery()) {
 
             System.out.println("\n=== PARTIDAS GUARDADAS ===");
             boolean hayPartidas = false;
 
-            // Iteramos fila a fila sobre los resultados de la consulta
             while (rs.next()) {
                 hayPartidas = true;
                 System.out.println("ID: " + rs.getInt("id_partida")
@@ -117,16 +85,11 @@ public class GestorBD {
             if (!hayPartidas) {
                 System.out.println("No hay partidas guardadas.");
             }
-            System.out.println("==========================\n");
+            System.out.println("====================\n");
 
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    /**
-     * Recupera de la BD todos los personajes de una partida filtrando por bando
-     * (aliados o enemigos) y los reconstruye como objetos Java de su clase correcta.
-     * Devuelve un ArrayList listo para usarse en la lógica del juego.
-     */
     public static ArrayList<Personaje> cargarPersonajesPorBando(int idPartida, boolean esAliado) {
         ArrayList<Personaje> lista = new ArrayList<>();
         String sql = "SELECT nombre, clase, vida_actual, vida_max, energia "
@@ -148,8 +111,6 @@ public class GestorBD {
 
                 Personaje p = null;
 
-                // Patrón de reconstrucción de objetos 
-                // según el texto guardado en la columna 'clase', instanciamos la subclase correcta
                 switch (clase) {
                     case "Mercenario": p = new Mercenario(nombre); break;
                     case "Netrunner":  p = new Netrunner(nombre);  break;
@@ -160,8 +121,6 @@ public class GestorBD {
                 }
 
                 if (p != null) {
-                    // Sobreescribimos los valores por defecto del constructor
-                    // con los datos reales guardados en la BD
                     p.setVidaActual(vidaActual);
                     p.setEnergia(energia);
                     lista.add(p);
@@ -172,11 +131,6 @@ public class GestorBD {
         return lista;
     }
 
-    /**
-     * Actualiza en la BD la vida y energía de un personaje concreto dentro de una partida.
-     * Se llama al final de cada turno para sincronizar el estado del juego con la persistencia.
-     * Laa búsqueda se hace por idPartida + nombre, que actúan como clave compuesta.
-     */
     public static void actualizarPersonaje(int idPartida, String nombre, int vidaActual, int energia) {
         String sql = "UPDATE personajes_partida SET vida_actual = ?, energia = ? "
                    + "WHERE id_partida = ? AND nombre = ?";
@@ -187,15 +141,11 @@ public class GestorBD {
             pstmt.setInt(2, energia);
             pstmt.setInt(3, idPartida);
             pstmt.setString(4, nombre);
-            pstmt.executeUpdate(); // Ejecuta el UPDATE
+            pstmt.executeUpdate();
 
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    /**
-     * Actualiza el turno actual de una partida en la BD.
-     * Permite retomar la partida en el punto exacto donde se guardó.
-     */
     public static void actualizarTurno(int idPartida, int turnoActual) {
         String sql = "UPDATE partidas SET turno_actual = ? WHERE id_partida = ?";
         try (Connection conexion = conectar();
@@ -203,31 +153,190 @@ public class GestorBD {
 
             pstmt.setInt(1, turnoActual);
             pstmt.setInt(2, idPartida);
-            pstmt.executeUpdate(); // Ejecuta el UPDATE
+            pstmt.executeUpdate();
 
         } catch (SQLException e) { e.printStackTrace(); }
     }
 
-    /**
-     * Elimina una partida de la BD por su ID.
-     * Gracias a la restricción ON DELETE CASCADE en la BD, al borrar la partida
-     * se eliminan automáticamente también todos sus personajes asociados.
-     * Informa por consola si la operación tuvo éxito o si el ID no existía.
-     */
     public static void borrarPartida(int idPartida) {
         String sql = "DELETE FROM partidas WHERE id_partida = ?";
         try (Connection conexion = conectar();
              PreparedStatement pstmt = conexion.prepareStatement(sql)) {
 
             pstmt.setInt(1, idPartida);
-            int filasBorradas = pstmt.executeUpdate(); // Devuelve el número de filas afectadas
+            int filasBorradas = pstmt.executeUpdate();
 
             if (filasBorradas > 0) {
                 System.out.println("Partida " + idPartida + " borrada correctamente.");
             } else {
-                // Si no se borró ninguna fila, el ID no existía en la tabla
                 System.out.println("No se encontró la partida con ID " + idPartida + ".");
             }
         } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    /*
+     * Inserta un evento en la tabla historial partida 
+     */
+    public static void registrarEvento(int idPartida, int ronda,
+                                       String tipoEvento, String descripcion) {
+        String sql = "INSERT INTO historial_partida (id_partida, ronda, tipo_evento, descripcion) "
+                   + "VALUES (?, ?, ?, ?)";
+
+        try (Connection conexion = conectar();
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
+
+            pstmt.setInt(1, idPartida);
+            pstmt.setInt(2, ronda);
+            pstmt.setString(3, tipoEvento);
+            pstmt.setString(4, descripcion);
+            pstmt.executeUpdate();
+
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    /*
+     * Muestra todos los eventos de una partida ordenados cronológicamente.
+     */
+    public static void mostrarHistorial(int idPartida) {
+        String sql = "SELECT ronda, tipo_evento, descripcion, fecha_hora "
+                   + "FROM historial_partida "
+                   + "WHERE id_partida = ? "
+                   + "ORDER BY id_historial ASC";
+
+        try (Connection conexion = conectar();
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
+
+            pstmt.setInt(1, idPartida);
+            ResultSet rs = pstmt.executeQuery();
+
+            System.out.println("\n========== HISTORIAL DE LA PARTIDA " + idPartida + " ==========");
+            boolean hayEventos = false;
+
+            while (rs.next()) {
+                hayEventos = true;
+                System.out.printf("[Ronda %-2d | %-18s | %s] %s%n",
+                        rs.getInt("ronda"),
+                        rs.getString("tipo_evento"),
+                        rs.getString("fecha_hora"),
+                        rs.getString("descripcion"));
+            }
+
+            if (!hayEventos) {
+                System.out.println("No hay eventos registrados para esta partida.");
+            }
+            System.out.println("=======================================================\n");
+
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    //  RANKING GLOBAL 
+
+    public static void actualizarRanking(String nombreJugador, boolean victoria, int rondasJugadas) {
+
+        // Convertimos el boolean a enteros para poder sumarlos directamente en SQL
+        int sumaVictorias = victoria ? 1 : 0; // 1 si ganó, 0 si perdió
+        int sumaDerrotas  = victoria ? 0 : 1; // 0 si ganó, 1 si perdió
+
+        String sql = "INSERT INTO ranking "
+                   + "    (nombre_jugador, victorias, derrotas, partidas_jugadas, rondas_totales) "
+                   + "VALUES (?, ?, ?, 1, ?) "
+                   + "ON DUPLICATE KEY UPDATE "
+                   + "    victorias        = victorias        + VALUES(victorias),       "
+                   + "    derrotas         = derrotas         + VALUES(derrotas),        "
+                   + "    partidas_jugadas = partidas_jugadas + 1,                       "
+                   + "    rondas_totales   = rondas_totales   + VALUES(rondas_totales)  ";
+
+        try (Connection conexion = conectar();
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
+
+            pstmt.setString(1, nombreJugador); // nombre del jugador
+            pstmt.setInt(2, sumaVictorias);    // victorias de esta partida (0 o 1)
+            pstmt.setInt(3, sumaDerrotas);     // derrotas de esta partida (0 o 1)
+            pstmt.setInt(4, rondasJugadas);    // rondas que duró esta partida
+            pstmt.executeUpdate();
+
+            // Confirmamos por consola qué se ha guardado
+            String resultado = victoria ? "VICTORIA" : "DERROTA";
+            System.out.println("\n   [Ranking actualizado → " + nombreJugador
+                    + ": " + resultado + " en " + rondasJugadas + " rondas]");
+
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    /*
+     * Muestra el ranking global ordenado por victorias (mayor a menor).
+     * Si dos jugadores empatan en victorias, gana el que termina
+     * antes de media (menos rondas por partida).
+     * ROUND(rondas_totales / partidas_jugadas, 1) calcula la media
+     * con 1 decimal directamente en SQL.
+     */
+    public static void mostrarRanking() {
+
+        String sql = "SELECT nombre_jugador, victorias, derrotas, partidas_jugadas, "
+                   + "       ROUND(rondas_totales / partidas_jugadas, 1) AS media_rondas "
+                   + "FROM ranking "
+                   + "ORDER BY victorias DESC, media_rondas ASC"; // más victorias primero;
+                                                                   // empate → menos rondas de media
+
+        try (Connection conexion = conectar();
+             PreparedStatement pstmt = conexion.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            // Cabecera de la tabla con caracteres de borde
+            System.out.println("\n╔══════════════════════════════════════════════════════╗");
+            System.out.println("║           RANKING GLOBAL DE JUGADORES                ║");
+            System.out.println("╠═══╦══════════════════╦═════╦══════╦════════╦════════╣");
+            System.out.printf ("║ %-2s║ %-17s║ %-4s║ %-5s║ %-7s║ %-7s║%n",
+                    "#", "Jugador", "Vic.", "Der.", "Partidas", "Med.Ron");
+            System.out.println("╠═══╬══════════════════╬═════╬══════╬════════╬════════╣");
+
+            int posicion = 1;
+            boolean hayJugadores = false;
+
+            while (rs.next()) {
+                hayJugadores = true;
+
+                String nombre      = rs.getString("nombre_jugador");
+                int    victorias   = rs.getInt("victorias");
+                int    derrotas    = rs.getInt("derrotas");
+                int    partidas    = rs.getInt("partidas_jugadas");
+                double mediaRondas = rs.getDouble("media_rondas");
+
+                if (nombre.length() > 17) nombre = nombre.substring(0, 17);
+
+                System.out.printf("║ %-2d║ %-17s║ %-4d║ %-5d║ %-7d║ %-7.1f║%n",
+                        posicion, nombre, victorias, derrotas, partidas, mediaRondas);
+                posicion++;
+            }
+
+            if (!hayJugadores) {
+                System.out.println("║      Aún no hay jugadores en el ranking.             ║");
+            }
+
+            System.out.println("╚═══╩══════════════════╩═════╩══════╩════════╩════════╝\n");
+
+        } catch (SQLException e) { e.printStackTrace(); }
+    }
+
+    /*
+     * Recupera el nombre del jugador propietario de una partida desde la BD.
+     * Se usa al cargar una partida guardada para saber a quién actualizar
+     * en el ranking cuando el combate termine.
+     * Devuelve null si el ID no existe.
+     */
+    public static String getNombreJugador(int idPartida) {
+        String sql = "SELECT nombre_jugador FROM partidas WHERE id_partida = ?";
+        try (Connection conexion = conectar();
+             PreparedStatement pstmt = conexion.prepareStatement(sql)) {
+
+            pstmt.setInt(1, idPartida);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                return rs.getString("nombre_jugador"); // Devuelve el nombre encontrado
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+
+        return null; // No se encontró ninguna partida con ese ID
     }
 }
