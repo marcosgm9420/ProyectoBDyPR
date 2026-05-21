@@ -23,10 +23,10 @@ public class GraficosXchart {
             "Rifle Biotico"
         );
 
-        // Eje Y: daño base de cada arma (sin el +5 de bonificación CaC)
+        // Eje Y: daño base de cada arma 
         List<Number> daños = Arrays.asList(15, 8, 5, 10, 8);
 
-        // Construimos la gráfica de barras (CategoryChart)
+        // gráfica de barras 
         CategoryChart grafica = new CategoryChartBuilder()
             .width(750)
             .height(500)

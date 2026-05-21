@@ -75,8 +75,8 @@ public class Juego {
     /*
      * Bucle principal de combate.
      * devuelve boolean:
-     *   true  → el jugador ganó (todos los enemigos eliminados)
-     *   false → el jugador perdió (todos sus héroes cayeron)
+     *   true : el jugador ganó (todos los enemigos eliminados)
+     *   false : el jugador perdió (todos sus héroes cayeron)
      * Main captura este valor para saber qué registrar en el ranking.
      */
     public boolean iniciar(int idPartida) throws InterruptedException {
@@ -134,7 +134,7 @@ public class Juego {
                 // Guardamos las rondas jugadas para que Main pueda leerlas
                 rondasJugadas = ronda;
 
-                // ── XCHART: mostramos las gráficas al ganar ──────────────
+                // XCHART: mostramos las gráficas al ganar 
                 GraficosXchart.mostrarEstadisticas();
 
                 // Devolvemos true = victoria
@@ -177,7 +177,7 @@ public class Juego {
                 // Guardamos las rondas jugadas para que Main pueda leerlas
                 rondasJugadas = ronda;
 
-                // ── XCHART: mostramos las gráficas al perder ─────────────
+                // XCHART: mostramos las gráficas al perder 
                 GraficosXchart.mostrarEstadisticas();
 
                 // Devolvemos false = derrota

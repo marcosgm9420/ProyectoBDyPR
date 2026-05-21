@@ -2,12 +2,6 @@ package hechizos;
 
 import personaje.Personaje;
 
-/*
- * Clase ABSTRACTA que reúne el comportamiento común de todos los hechizos.
- *   - Guardar el nombre y el coste
- *   - Comprobar si el lanzador tiene energía suficiente
- *   - Restar la energía gastada
- */
 public abstract class HechizosBase implements Hechizo {
 
     // Atributos comunes a todos los hechizos 
@@ -48,7 +42,7 @@ public abstract class HechizosBase implements Hechizo {
         return nombre;
     }
 
-    // esOfensivo() sigue siendo abstracto: cada hechizo dice si daña o cura
+    //sigue siendo abstracto: cada hechizo dice si daña o cura
     @Override
     public abstract boolean esOfensivo();
 }
