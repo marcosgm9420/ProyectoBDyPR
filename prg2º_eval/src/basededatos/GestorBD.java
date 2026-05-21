@@ -224,7 +224,7 @@ public class GestorBD {
             if (!hayEventos) {
                 System.out.println("No hay eventos registrados para esta partida.");
             }
-            System.out.println("=======================================================\n");
+            System.out.println("================================\n");
 
         } catch (SQLException e) { e.printStackTrace(); }
     }

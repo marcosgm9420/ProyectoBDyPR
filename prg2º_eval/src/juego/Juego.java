@@ -6,6 +6,7 @@ import personaje.Netrunner;
 import personaje.Doctor;
 import basededatos.GestorBD;
 import java.util.ArrayList;
+import graficos.GraficosXchart;
  
 public class Juego {
  
@@ -73,8 +74,6 @@ public class Juego {
  
     /*
      * Bucle principal de combate.
-     *
-     
      * devuelve boolean:
      *   true  → el jugador ganó (todos los enemigos eliminados)
      *   false → el jugador perdió (todos sus héroes cayeron)
@@ -135,6 +134,9 @@ public class Juego {
                 // Guardamos las rondas jugadas para que Main pueda leerlas
                 rondasJugadas = ronda;
 
+                // ── XCHART: mostramos las gráficas al ganar ──────────────
+                GraficosXchart.mostrarEstadisticas();
+
                 // Devolvemos true = victoria
                 return true;
             }
@@ -175,10 +177,14 @@ public class Juego {
                 // Guardamos las rondas jugadas para que Main pueda leerlas
                 rondasJugadas = ronda;
 
+                // ── XCHART: mostramos las gráficas al perder ─────────────
+                GraficosXchart.mostrarEstadisticas();
+
                 // Devolvemos false = derrota
                 return false;
             }
-             System.out.println("\n   [Guardando progreso de la ronda " + ronda + " en MySQL...]");
+
+            System.out.println("\n   [Guardando progreso de la ronda " + ronda + " en MySQL...]");
             for (Personaje p : tuEquipo) {
                 GestorBD.actualizarPersonaje(idPartida, p.getNombre(), p.getVidaActual(), p.energia);
             }
@@ -191,6 +197,7 @@ public class Juego {
             Thread.sleep(1000);
         }
     }
+
     /*
      * Registra la muerte de un personaje solo la primera vez.
      * Consulta la BD antes de insertar para evitar duplicados.
