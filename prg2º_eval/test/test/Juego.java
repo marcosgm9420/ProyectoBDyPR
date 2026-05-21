@@ -1,24 +1,19 @@
 package test;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-
 import armas.Arma;
 import estado.Estado;
 import hechizos.HechizoCuracion;
 import hechizos.HechizoDañoDirecto;
 import hechizos.HechizoDot;
 import hechizos.HechizoHot;
-import personaje.Doctor;
 import personaje.Mercenario;
-import personaje.Netrunner;
 import personaje.Personaje;
 
-
-class JuegoTest {
+public class Juego {
 
     private Personaje atacante;
     private Personaje objetivo;
@@ -301,5 +296,3 @@ class JuegoTest {
         assertFalse(estado.haTerminado(),
                 "El estado no debería haber terminado con 3 turnos restantes");
     }}
-
-  
