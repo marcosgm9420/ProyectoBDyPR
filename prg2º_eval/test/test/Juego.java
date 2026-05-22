@@ -10,7 +10,7 @@ import hechizos.HechizoCuracion;
 import hechizos.HechizoDañoDirecto;
 import hechizos.HechizoDot;
 import hechizos.HechizoHot;
-import personaje.Mercenario;
+import personaje.Mercenario; 
 import personaje.Personaje;
 
 public class Juego {
